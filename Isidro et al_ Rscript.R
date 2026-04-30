@@ -76,7 +76,7 @@ hal_plot_mean <- hal_data %>%  group_by(Treatment, Time_point, Days, Plot) %>%
 
 #------------Mixed effect model for Halimeda opuntia d15N values across time--------------
 
-#Write up model for Halimeda sp. d15N values across time. Plot and Replicate is a random effect
+#Write up model for Halimeda opuntia d15N values across time. Plot and Replicate is a random effect
 d15N_lmer<-lmer(d15N~Treatment*as.factor(Days)+(1|Plot)+(1|Replicate),data=hal_data)
 summary(d15N_lmer) 
 anova(d15N_lmer,type=2)
@@ -226,7 +226,7 @@ reps_time <- ggplot(hal_data_filtered, aes(x = Days, y = d15N, group = ID, color
 reps_time
 
 
-#Calculate difference between d15N in enriched Halimeda and the mean of fertilizer(=0.3)
+#Calculate difference between d15N in enriched Halimeda and the mean of fertilizer(=0.3‰)
 df1 <- hal_data %>%
   dplyr::select(Treatment, Days, Plot, ID, d15N) %>%       
   tidyr::pivot_wider(names_from = Treatment, values_from = d15N) %>% 
@@ -312,7 +312,7 @@ nested <- df1 %>%
   mutate(n = map_int(data, nrow))
 
 #Bootstrap settings
-nboot <- 10000 
+nboot <- 100 #final with 10000
 set.seed(123)
 
 all <- NULL 
@@ -502,7 +502,7 @@ thallus_delta <- thallus_delta %>%
   mutate(delta_d15N = `15` - `0`)
 
 
-#----------Linear Mixed model -differences between different locations in thallus-----------------------------------------
+#----------Linear Mixed model-differences between different locations in thallus-----------------------------------------
 
 #Write up model for d15N values in different locations across time point. Replicate is a random effect
 d15N_thallus <- lmer(d15N ~ Location * Time_point + (1 | Plant), data = hal_thallus)
@@ -598,7 +598,7 @@ lr.rep <- ggplot() +
 lr.rep
 
 
-# ----------Boxplot with δ15N and %N across plots, grouped by calcification status and faceted by Enrichment treatment------------------
+# ----------Boxplot with δ15N across plots, grouped by calcification status and faceted by Enrichment treatment------------------
 
 #d15N values
 d15N_calc <- ggplot(hal_t0, aes(x = Plots, y = d15N, fill = Calc)) +
@@ -614,7 +614,7 @@ d15N_calc
 
 
 #------------------------------------------------------------------------------------
-#                        Nutrient Concentation in water samples
+#                        Nutrient Concentration in water samples
 #--------------------------------------------------------------------------------------
 
 #Open dataframes
@@ -694,11 +694,8 @@ main_labels <- day_breaks
 
 nutrient_water <- ggplot(data = nutrient_summary, mapping = aes(Days, mean, col = Treatment)) +  
   geom_line(data = nutrient_summary, mapping = aes(x = Days, y = mean, group = Treatment, color = Treatment)) +
-  geom_point(data = nutrient_rows, mapping = aes(Days, umol_l, color = Treatment, fill = Treatment, shape = Treatment),
-             position = position_jitterdodge(dodge.width = 1, jitter.width = 0.2),
-             col = 'black', alpha = 0.5) + 
   geom_point(data = nutrient_summary, mapping = aes(x = Days, y = mean, fill = Treatment, shape = Treatment),
-             col = 'black', size = 2) +
+             col = 'black', size = 3.5) +
   geom_errorbar(data = nutrient_summary, mapping = aes(x = Days, y = mean,
                ymin = mean - (se * 1.96), ymax = mean + (se * 1.96), color = Treatment),
                 linewidth = 1, width = 0, alpha = 0.5) +
