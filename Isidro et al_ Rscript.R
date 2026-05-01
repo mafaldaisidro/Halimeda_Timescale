@@ -43,7 +43,6 @@ day_breaks2=c(7,10,14,20,26,36,42)
 #-----------------------------------------------------------------------------------------
 #   Temporal changes in d15N values of Halimeda opuntia in response to nutrient enrichment
 #-----------------------------------------------------------------------------------------
-
 #Open dataframes
 hal_data<-read.csv("hal_enrichment.csv")
 colnames(hal_data) <- c("Treatment", "Time_point","Days", "Plot", "Replicate","ID", "d15N", "d13C", "perctN", "perctC", "ratioCN")
@@ -78,8 +77,8 @@ hal_plot_mean <- hal_data %>%  group_by(Treatment, Time_point, Days, Plot) %>%
 
 #Write up model for Halimeda opuntia d15N values across time. Plot and Replicate is a random effect
 d15N_lmer<-lmer(d15N~Treatment*as.factor(Days)+(1|Plot)+(1|Replicate),data=hal_data)
-summary(d15N_lmer) 
 anova(d15N_lmer,type=2)
+summary(d15N_lmer) 
 
 # Look at Plot as random effect
 ranova(d15N_lmer)   ## Plot as random effect is significant--> δ15N varies between different plots, even after accounting for Treatment, Days, and their interaction
@@ -140,8 +139,9 @@ d15N_enrichment
 
 #write model for Halimeda opuntia C:N ratios across time. Plot is a ramdom effect
 CN_lmer<-lmer(ratioCN~Treatment*as.factor(Days)+(1|Plot)+(1|Replicate),data=hal_data)
-summary(CN_lmer)
 anova(CN_lmer,type=2)
+summary(CN_lmer)
+
 
 # Look at Plot as random effect
 ranova(CN_lmer)       #C:N varies between plots but not replicates 
@@ -526,12 +526,18 @@ leveneTest(d15N ~ Location * Time_point, data = hal_thallus)   #0.29-> homogeneo
 
 
 #----------Boxplot of Halimeda opuntia d15N across diferent locations across time ------------------
-thallus_d15N<- ggplot(hal_thallus, aes(x=Time_point, y=d15N, fill=Location))+
-  geom_boxplot(outlier.colour = NA)+ geom_point(aes(fill=Location,group=Location),shape=21,position=position_jitterdodge(.2), alpha=0.5)+
-  scale_color_manual(values = c("#b9c9cc", "#68A4A5", "#4C8055","#31473A"))+
-  scale_fill_manual(values = c("#b9c9cc", "#68A4A5", "#4C8055","#31473A"))+
-  labs (x= "Day", y=expression({delta}^15*N~'(\u2030)'))+newtheme
+thallus_d15N <- ggplot(hal_thallus, aes(x = Time_point, y = d15N, fill = Location)) +
+  geom_boxplot(outlier.colour = NA) +
+  geom_point(aes(fill = Location, group = Location),   shape = 21,
+             position = position_jitterdodge(.2),  alpha = 0.5) +
+  scale_color_manual(values = c("#b9c9cc", "#68A4A5", "#4C8055", "#31473A")) +
+  scale_fill_manual(values = c("#b9c9cc", "#68A4A5", "#4C8055", "#31473A")) +
+  geom_hline(yintercept = 0.3, lty = 2) +
+  geom_hline(yintercept = 0.3 + 0.153, linetype = "dotted", color = "grey40", linewidth = 0.5) +
+  geom_hline(yintercept = 0.3 - 0.153, linetype = "dotted", color = "grey40", linewidth = 0.5) +
+  labs(x = "Day", y = expression({delta}^15*N~'(\u2030)')) +  newtheme
 thallus_d15N
+
 
 
 #--------------------------------------------------------------------------------
@@ -607,7 +613,7 @@ d15N_calc <- ggplot(hal_t0, aes(x = Plots, y = d15N, fill = Calc)) +
              position = position_jitterdodge(0.2), alpha = 0.5) +
   scale_fill_manual(values = c("darkseagreen", "darkseagreen2")) +
   newtheme +
-  xlab("Plots") +
+  xlab("Groups") +
   ylab(expression({delta}^15*N~'(\u2030)')) +
   guides(fill = guide_legend(title = NULL))
 d15N_calc
@@ -641,19 +647,20 @@ nutrient_average<-nutrient %>%
 #Reorganize data for plot, different nutrients as rows  
 nutrient_rows <- nutrient_average %>%
   pivot_longer(cols = c(DIN, Phosphate),
-    names_to = "Nutrient",values_to = "umol_l" )
+    names_to = "Nutrient",values_to = "umol_l") %>%
+  ungroup()
 
 #Calculate mean, sd, se for the different nutrients at each sampling day
 nutrient_summary <- nutrient_rows %>%
-  filter(!is.na(umol_l), 
-         !is.na(Treatment), 
-         !is.na(Nutrient), 
-         !is.na(Days)) %>%
-  group_by(Treatment, Nutrient, Days) %>%   
+  filter(!is.na(umol_l),
+    !is.na(Treatment),
+    !is.na(Nutrient),
+    !is.na(Days)) %>%
+  group_by(Treatment, Nutrient, Days) %>%
   summarise(mean = mean(umol_l, na.rm = TRUE),
-            sd = sd(umol_l, na.rm = TRUE),
-           n = n(),
-           se = sd / sqrt(n), .groups = "drop") %>%
+            sd   = sd(umol_l, na.rm = TRUE),
+             n    = n_distinct(Plot),   # number of plots contributing
+             se   = sd / sqrt(n),  .groups = "drop" ) %>%
   arrange(Nutrient, Treatment, Days)
 
 
@@ -696,6 +703,10 @@ nutrient_water <- ggplot(data = nutrient_summary, mapping = aes(Days, mean, col 
   geom_line(data = nutrient_summary, mapping = aes(x = Days, y = mean, group = Treatment, color = Treatment)) +
   geom_point(data = nutrient_summary, mapping = aes(x = Days, y = mean, fill = Treatment, shape = Treatment),
              col = 'black', size = 3.5) +
+  # raw individual plot points
+  geom_point(data = nutrient_rows,aes(x = Days, y = umol_l, fill = Treatment, shape = Treatment),
+              colour = "black", size = 2,  alpha = 0.6, 
+             position = position_jitter(width = 0.5, height = 0)) +
   geom_errorbar(data = nutrient_summary, mapping = aes(x = Days, y = mean,
                ymin = mean - (se * 1.96), ymax = mean + (se * 1.96), color = Treatment),
                 linewidth = 1, width = 0, alpha = 0.5) +
